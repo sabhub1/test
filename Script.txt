@@ -1,50 +1,50 @@
 local Players = game:GetService("Players")
-local RS      = game:GetService("ReplicatedStorage")
-local Net     = RS:WaitForChild("Packages"):WaitForChild("Net")
-local PG      = Players.LocalPlayer:WaitForChild("PlayerGui")
+local RS = game:GetService("ReplicatedStorage")
+local Net = RS:WaitForChild("Packages"):WaitForChild("Net")
+local PG = Players.LocalPlayer:WaitForChild("PlayerGui")
 
 if typeof(firesignal) ~= "function" then
-    warn("[TestSender] executor has no 'firesignal' - cannot fake announcements.")
-    return
+ warn("[TestSender] executor has no 'firesignal' - cannot fake announcements.")
+ return
 end
 
 -- resolve the notify remote: Phi's _G, else via NotificationController
 local function resolveRemote()
-    if _G.PhiNotifyRemote then return _G.PhiNotifyRemote end
-    local getinfo = debug and (debug.getinfo or debug.info)
-    if getgc and getinfo then
-        if getconnections then
-            for _, d in ipairs(Net:GetDescendants()) do
-                if d:IsA("RemoteEvent") then
-                    local ok, cs = pcall(getconnections, d.OnClientEvent)
-                    if ok then
-                        for _, c in ipairs(cs) do
-                            local f, fn = pcall(function() return c.Function end)
-                            if f and type(fn) == "function" then
-                                local i, info = pcall(getinfo, fn)
-                                if i and tostring(info.short_src or info.source or ""):find("NotificationController", 1, true) then
-                                    return d
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
+ if _G.PhiNotifyRemote then return _G.PhiNotifyRemote end
+ local getinfo = debug and (debug.getinfo or debug.info)
+ if getgc and getinfo then
+ if getconnections then
+ for _, d in ipairs(Net:GetDescendants()) do
+ if d:IsA("RemoteEvent") then
+ local ok, cs = pcall(getconnections, d.OnClientEvent)
+ if ok then
+ for _, c in ipairs(cs) do
+ local f, fn = pcall(function() return c.Function end)
+ if f and type(fn) == "function" then
+ local i, info = pcall(getinfo, fn)
+ if i and tostring(info.short_src or info.source or ""):find("NotificationController", 1, true) then
+ return d
+ end
+ end
+ end
+ end
+ end
+ end
+ end
+ end
 end
 
 local remote = resolveRemote()
 if not remote then
-    warn("[TestSender] notify remote not found - load Phi first, then run this.")
-    return
+ warn("[TestSender] notify remote not found - load Phi first, then run this.")
+ return
 end
 print("[TestSender] using remote:", remote.Name)
 
 local function fire(txt)
-    txt = (txt or ""):gsub("^%s+", ""):gsub("%s+$", "")
-    if txt == "" then return end
-    firesignal(remote.OnClientEvent, txt, 5.5, "Sounds.Sfx.Blop", "Top", 2678001507)
+ txt = (txt or ""):gsub("^%s+", ""):gsub("%s+$", "")
+ if txt == "" then return end
+ firesignal(remote.OnClientEvent, txt, 5.5, "Sounds.Sfx.Blop", "Top", 2678001507)
 end
 
 -- minimal UI
@@ -53,15 +53,15 @@ local SG = Instance.new("ScreenGui"); SG.Name = "PhiTestSender"
 SG.ResetOnSpawn = false; SG.DisplayOrder = 205; SG.Parent = PG
 
 local function corner(r, p)
-    local c = Instance.new("UICorner", p)
-    c.CornerRadius = UDim.new(0, r)
+ local c = Instance.new("UICorner", p)
+ c.CornerRadius = UDim.new(0, r)
 end
 
 local function stroke(p)
-    local s = Instance.new("UIStroke", p)
-    s.Color = Color3.fromRGB(78, 78, 90)
-    s.Transparency = 0.25
-    return s
+ local s = Instance.new("UIStroke", p)
+ s.Color = Color3.fromRGB(78, 78, 90)
+ s.Transparency = 0.25
+ return s
 end
 
 local W = Instance.new("Frame", SG)
@@ -103,23 +103,35 @@ close.MouseButton1Click:Connect(function() SG:Destroy() end)
 
 -- drag mechanics
 do
-    local drag, ds, sp
-    head.InputBegan:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 then
-            drag = true
-            ds = i.Position
-            sp = W.Position
-            i.Changed:Connect(function()
-                if i.UserInputState == Enum.UserInputState.End then drag = false end
-            end)
-        end
-    end)
-    game:GetService("UserInputService").InputChanged:Connect(function(i)
-        if drag and i.UserInputType == Enum.UserInputType.MouseMovement then
-            local d = i.Position - ds
-            W.Position = UDim2.new(sp.X.Scale, sp.X.Offset + d.X, sp.Y.Scale, sp.Y.Offset + d.Y)
-        end
-    end)
+ local UIS = game:GetService("UserInputService")
+ local drag, ds, sp
+
+ head.InputBegan:Connect(function(i)
+ if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+ drag = true
+ ds = i.Position
+ sp = W.Position
+ end
+ end)
+
+ head.InputEnded:Connect(function(i)
+ if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+ drag = false
+ end
+ end)
+
+ UIS.InputChanged:Connect(function(i)
+ if drag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+ local d = i.Position - ds
+ W.Position = UDim2.new(sp.X.Scale, sp.X.Offset + d.X, sp.Y.Scale, sp.Y.Offset + d.Y)
+ end
+ end)
+
+ UIS.InputEnded:Connect(function(i)
+ if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+ drag = false
+ end
+ end)
 end
 
 local box = Instance.new("TextBox", W)
