@@ -36,10 +36,11 @@ local CONFIG = {
     },
 
     Size = {
-        MainFrame    = UDim2.new(0, 320, 0, 240),
+        MainFrame    = UDim2.new(0, 300, 0, 241),
         TopBar       = UDim2.new(1, 0, 0, 44),
         ScanButton   = UDim2.new(1, -24, 0, 30),
         ModeButton   = UDim2.new(1, -24, 0, 30),
+        RiddleBtn    = UDim2.new(1, -24, 0, 30),
         PreviewBox   = UDim2.new(1, -102, 0, 30),
         RedeemButton = UDim2.new(0, 70, 0, 30),
         BottomRow    = UDim2.new(1, -24, 0, 30),
@@ -49,16 +50,17 @@ local CONFIG = {
     },
 
     Position = {
-        MainFrame    = UDim2.new(0.5, -90, 0.5, -153),
+        MainFrame    = UDim2.new(0.5, -90, 0.5, -171),
         TopBar       = UDim2.new(0, 0, 0, 0),
         Title        = UDim2.new(0, 12, 0, 8),
         Subtitle     = UDim2.new(0, 12, 0, 25),
         StatusDot    = UDim2.new(1, -18, 0, 17),
-        ScanButton   = UDim2.new(0, 12, 0, 88),
-        ModeButton   = UDim2.new(0, 12, 0, 124),
+        ScanButton   = UDim2.new(0, 12, 0, 52),
+        ModeButton   = UDim2.new(0, 12, 0, 88),
+        RiddleBtn    = UDim2.new(0, 12, 0, 124),
         PreviewBox   = UDim2.new(0, 12, 0, 160),
         RedeemButton = UDim2.new(1, -82, 0, 160),
-        BottomRow    = UDim2.new(0, 12, 0, 195),
+        BottomRow    = UDim2.new(0, 12, 0, 196),
         DelayLabel   = UDim2.new(0, 10, 0, 0),
         DelayBox     = UDim2.new(0, 62, 0, 0),
         SetButton    = UDim2.new(1, -70, 0, 0),
@@ -87,8 +89,8 @@ local CONFIG = {
     },
 
     CornerRadius = {
-        Main   = UDim.new(0, 24),
-        Button = UDim.new(0, 12),
+        Main   = UDim.new(0, 16),
+        Button = UDim.new(0, 10),
         Dot    = UDim.new(1, 0),
     },
 
@@ -119,15 +121,15 @@ local CONFIG = {
     },
 
     Modes = {
-        { Name = "SUBMIT AFTER 1 WORD",  Count = 1 },
-        { Name = "SUBMIT AFTER 2 WORDS", Count = 2 },
-        { Name = "SUBMIT AFTER 3 WORDS", Count = 3 },
-        { Name = "SUBMIT AFTER 4 WORDS", Count = 4 },
-        { Name = "SUBMIT AFTER 5 WORDS", Count = 5 },
+        { Name = "1 GLOBAL MESSAGE",  Count = 1 },
+        { Name = "2 GLOBAL MESSAGES", Count = 2 },
+        { Name = "3 GLOBAL MESSAGES", Count = 3 },
+        { Name = "4 GLOBAL MESSAGES", Count = 4 },
+        { Name = "5 GLOBAL MESSAGES", Count = 5 },
     },
 
     Riddle = {
-        URL     = "https://backend.buildpicoapps.com/aero/run/llm-api?pk=v1-Z0FBQUFBQm5IUU8zWk1nMWdaNGZfNWNHT0x1M28tU25hQ0hsc3FXZHhQcTQtMml2QWJqZWxPcF92MnlIQnpYSUo4RnFFZlpxU25vX0cxSW9aT1YxVnhZQU51NW04dGg3Y3c9PQ==",
+        URL     = "https://sab-riddle-solver.xyrcheatz.workers.dev",
         Token   = "0facce8d7ac3a4b6fc4b6ae068b3b219883009780cb2ca31",
         Primary = "qwen",
         Backup  = "backup",
@@ -147,6 +149,7 @@ local SubtitleLabel
 local StatusDot
 local ScanButton
 local ModeButton
+local RiddleBtn
 local PreviewBox
 local RedeemButton
 local BottomRow
@@ -463,6 +466,22 @@ local FOOD_FACTS = {
     {"what fruit is orange and round", "orange"}, {"what is a potato", "vegetable"},
 }
 for _, pair in ipairs(FOOD_FACTS) do add(pair[1], pair[2]) end
+
+
+-- First-person phrasing: Sammy speaks as "I/me/my" in announcements
+local FIRST_PERSON_FACTS = {
+    {"who am i", FACTS.owner}, {"what is my name", FACTS.owner}, {"whats my name", FACTS.owner},
+    {"how old am i", FACTS.age}, {"what is my age", FACTS.age}, {"whats my age", FACTS.age},
+    {"how many years old am i", FACTS.age},
+    {"where do i live", FACTS.country}, {"where am i from", FACTS.country}, {"what country am i from", FACTS.country},
+    {"what country do i live in", FACTS.country}, {"where was i born", FACTS.country},
+    {"what is my nationality", FACTS.nationality}, {"whats my nationality", FACTS.nationality},
+    {"when did i make this game", FACTS.createdYear}, {"when did i create this game", FACTS.createdYear},
+    {"when did i make sab", FACTS.createdYear}, {"when did i release this game", FACTS.createdYear},
+    {"what is my discord", FACTS.discord}, {"whats my discord", FACTS.discord},
+    {"what is my goal for this game", FACTS.goal},
+}
+for _, pair in ipairs(FIRST_PERSON_FACTS) do add(pair[1], pair[2]) end
 
 local CLASSIC_RIDDLES = {
     {"what has hands but cannot clap", "clock"}, {"what gets wetter as it dries", "towel"},
@@ -834,27 +853,20 @@ end
 
 local function aiPost(path, body)
     if not httpRequest then return nil end
-    local systemPrompt = "You are a riddle solver for the Roblox game 'Steal a Brainrot'. If the riddle uses first-person pronouns like 'I', 'me', or 'my', it is referring to the game's owner and creator, 'Sammy'. Reply with ONLY the exact answer word or short phrase. No explanation, no punctuation, just the answer."
-    local fullPrompt = systemPrompt .. "\n\nRiddle: " .. tostring(body.message)
-
     local ok, res = pcall(httpRequest, {
-        Url     = "https://backend.buildpicoapps.com/aero/run/llm-api?pk=v1-Z0FBQUFBQm5IUU8zWk1nMWdaNGZfNWNHT0x1M28tU25hQ0hsc3FXZHhQcTQtMml2QWJqZWxPcF92MnlIQnpYSUo4RnFFZlpxU25vX0cxSW9aT1YxVnhZQU51NW04dGg3Y3c9PQ==",
+        Url     = CONFIG.Riddle.URL .. path,
         Method  = "POST",
         Headers = {
-            ["Content-Type"]  = "application/json"
+            ["Content-Type"]  = "application/json",
+            ["Authorization"] = "Bearer " .. CONFIG.Riddle.Token,
         },
-        Body = HttpService:JSONEncode({ prompt = fullPrompt }),
+        Body = HttpService:JSONEncode(body),
     })
     if not ok or type(res) ~= "table" then return nil end
     local raw = res.Body or res.body
     if type(raw) ~= "string" then return nil end
     local okd, data = pcall(function() return HttpService:JSONDecode(raw) end)
-    
-    if okd and type(data) == "table" and data.status == "success" and data.text then
-        local aiAnswer = string.match(data.text, "^%s*(.-)%s*$")
-        aiAnswer = string.gsub(aiAnswer, "[%p]", "")
-        return { riddle = true, answers = { aiAnswer } }
-    end
+    if okd and type(data) == "table" then return data end
     return nil
 end
 
@@ -1201,6 +1213,29 @@ local function createGUI()
     modeStroke.Thickness = 1
     modeStroke.Parent = ModeButton
 
+    RiddleBtn = Instance.new("TextButton")
+    RiddleBtn.Name = "RiddleBtn"
+    RiddleBtn.BackgroundColor3 = CONFIG.Colors.ButtonBg
+    RiddleBtn.BackgroundTransparency = CONFIG.Transparency.Button
+    RiddleBtn.BorderSizePixel = 0
+    RiddleBtn.Position = CONFIG.Position.RiddleBtn
+    RiddleBtn.Size = CONFIG.Size.RiddleBtn
+    RiddleBtn.AutoButtonColor = false
+    RiddleBtn.Font = Enum.Font.GothamBold
+    RiddleBtn.Text = "AI RIDDLE SOLVER: " .. (_riddleSolver and "ON" or "OFF")
+    RiddleBtn.TextColor3 = _riddleSolver and CONFIG.Colors.StatusOn or CONFIG.Colors.StatusOff
+    RiddleBtn.TextSize = 10
+    RiddleBtn.Parent = MainFrame
+
+    local riddleCorner = Instance.new("UICorner")
+    riddleCorner.CornerRadius = CONFIG.CornerRadius.Button
+    riddleCorner.Parent = RiddleBtn
+
+    local riddleStroke = Instance.new("UIStroke")
+    riddleStroke.Color = CONFIG.Colors.Stroke
+    riddleStroke.Thickness = 1
+    riddleStroke.Parent = RiddleBtn
+
     PreviewBox = Instance.new("TextBox")
     PreviewBox.Name = CONFIG.Names.PreviewBox
     PreviewBox.BackgroundColor3 = CONFIG.Colors.ButtonBg
@@ -1382,6 +1417,13 @@ local function setupEvents()
         _msgCombined = ""
         if PreviewBox then PreviewBox.Text = "" end
         updateModeButton()
+        saveCfg()
+    end)
+
+    RiddleBtn.MouseButton1Click:Connect(function()
+        _riddleSolver = not _riddleSolver
+        RiddleBtn.Text = "AI RIDDLE SOLVER: " .. (_riddleSolver and "ON" or "OFF")
+        RiddleBtn.TextColor3 = _riddleSolver and CONFIG.Colors.StatusOn or CONFIG.Colors.StatusOff
         saveCfg()
     end)
 
